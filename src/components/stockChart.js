@@ -6,6 +6,7 @@ import data from "@/data/data";
 const StockChart = () => {
   const chartContainerRef = useRef(null);
   const chartInstance = useRef(null);
+  const toolTipRef = useRef(null);
 
   useEffect(() => {
     if (!chartInstance.current) {
@@ -52,11 +53,46 @@ const StockChart = () => {
     });
 
     areaSeries.setData(
-      data.map((item) => ({ time: item.time, value: item.volume }))
+      data.map((item) => ({ time: item.time, value: item.close }))
     );
     volumeSeries.setData(
       data.map((item) => ({ time: item.time, value: item.volume }))
     );
+
+    // Subscribe to crosshair move event
+    chartInstance.current.subscribeCrosshairMove((param) => {
+      if (param.time && param.point) {
+        const dateStr = param.time;
+        let price = null;
+        let volume = null;
+
+        // Find price and volume for area series
+        for (const seriesId in param.prices) {
+          if (
+            param.prices.hasOwnProperty(seriesId) &&
+            seriesId === areaSeries.seriesId
+          ) {
+            price = param.prices[seriesId];
+            break;
+          }
+        }
+
+        // Find price for volume series
+        for (const seriesId in param.prices) {
+          if (
+            param.prices.hasOwnProperty(seriesId) &&
+            seriesId === volumeSeries.seriesId
+          ) {
+            volume = param.prices[seriesId];
+            break;
+          }
+        }
+
+        showTooltip(dateStr, price, volume, param.point);
+      } else {
+        hideTooltip();
+      }
+    });
 
     return () => {
       if (chartInstance.current !== null) {
@@ -64,10 +100,52 @@ const StockChart = () => {
         chartInstance.current = null;
       }
     };
-  }, [data]);
+  }, []);
+
+  const showTooltip = (dateStr, price, volume, point) => {
+    const toolTip = toolTipRef.current;
+    toolTip.style.display = "block";
+    toolTip.style.left = point.x + "px";
+    toolTip.style.top = point.y + "px";
+    toolTip.innerHTML = `
+      <div>${dateStr}</div>
+      <div>Price: ${price}</div>
+      <div>Volume: ${volume}</div>
+    `;
+  };
+
+  const hideTooltip = () => {
+    const toolTip = toolTipRef.current;
+    toolTip.style.display = "none";
+  };
 
   return (
-    <div ref={chartContainerRef} style={{ width: "100%", height: "500px" }} />
+    <div ref={chartContainerRef} style={{ width: "100%", height: "500px" }}>
+      <div
+        ref={toolTipRef}
+        style={{
+          width: "auto",
+          height: "auto",
+          position: "absolute",
+          display: "none",
+          padding: "8px",
+          boxSizing: "border-box",
+          fontSize: "12px",
+          textAlign: "left",
+          zIndex: 1000,
+          pointerEvents: "none",
+          border: "1px solid",
+          borderRadius: "2px",
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif',
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
+          background: "white",
+          color: "black",
+          borderColor: "rgba( 38, 166, 154, 1)",
+        }}
+      />
+    </div>
   );
 };
 
