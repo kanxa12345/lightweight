@@ -1,9 +1,8 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createChart } from "lightweight-charts";
-import data from "@/data/data";
 
-const StockChart = () => {
+const StockChart = ({ data }) => {
   const chartContainerRef = useRef(null);
   const chartInstance = useRef(null);
   const toolTipRef = useRef(null);
@@ -59,14 +58,12 @@ const StockChart = () => {
       data.map((item) => ({ time: item.time, value: item.volume }))
     );
 
-    // Subscribe to crosshair move event
     chartInstance.current.subscribeCrosshairMove((param) => {
       if (param.time && param.point) {
         const dateStr = param.time;
         let price = null;
         let volume = null;
 
-        // Find price and volume for area series
         for (const seriesId in param.prices) {
           if (
             param.prices.hasOwnProperty(seriesId) &&
@@ -77,7 +74,6 @@ const StockChart = () => {
           }
         }
 
-        // Find price for volume series
         for (const seriesId in param.prices) {
           if (
             param.prices.hasOwnProperty(seriesId) &&
